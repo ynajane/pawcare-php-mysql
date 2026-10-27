@@ -1,3 +1,4 @@
+import CheckoutRelease from './CheckoutRelease.jsx';
 import {isCheckoutAddon} from '../checkoutProducts.js';
 import { SearchField } from "./owner/ui.jsx";
 import ClinicDialog from '../components/ClinicDialog.jsx';
@@ -24,6 +25,7 @@ export default function BillingModal({ appt, db, setDb, me, onClose, onPaid }) {
 
   const [paymentRecord, setPaymentRecord] = useState(appt);
   const savedBill = ownerBill(paymentRecord);
+  const admissionId = db.appts.find(a => a.id === appt.id)?.admissionId || appt.admissionId;
   const [catalog, setCatalog] = useState([]);
   const [catalogError, setCatalogError] = useState("");
   const [catalogAttempt, setCatalogAttempt] = useState(0);
@@ -200,6 +202,9 @@ export default function BillingModal({ appt, db, setDb, me, onClose, onPaid }) {
               <CheckCircle2 size={22} aria-hidden="true" />
               <div><b>Payment recorded</b><span>{money(savedBill.amount)} paid by {paymentRecord.paymentMethod?.trim() || "unrecorded method"}. The official receipt below is now final.</span></div>
             </div>
+            {me.role === 'assistant' && admissionId && <CheckoutRelease key={admissionId} id={admissionId} apptId={appt.id} me={me} onReleased={admission => {
+              setDb(previous => ({...previous,appts:previous.appts.map(visit => visit.id === appt.id ? {...visit,admissionStatus:admission.status} : visit)}));
+            }} />}
             <InvoiceDocument appt={appt} payment={paymentRecord} bill={savedBill} pet={pet} owner={owner} />
             <div className="inv-actions no-print">
               <button className="btn ghost sm" onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: "6px" }}>

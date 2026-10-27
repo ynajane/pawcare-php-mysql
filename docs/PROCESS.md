@@ -58,7 +58,10 @@ before initial check-in. Earlier unfinished clinical visits remain visible.
   assistant records consent, observations and actual medicine events. The vet
   finalizes visit notes and approves discharge; reception then records payment
   and separately confirms the pet's actual release. A completed visit remains
-  held from checkout while its admission is **Admitted**.
+  held from checkout while its admission is **Admitted**. After payment, the
+  receipt shows **Confirm release to owner** and the saved home-care instructions.
+  Reception reviews and saves that release to mark the stay **Discharged**; the
+  same action remains available when reopening a paid receipt.
 - Owners see their own saved visits, charges, receipts, shared admission updates
   and follow-up instructions. Standard vaccination cards record actual doses and
   do not depend on payment or a clinic-document setup screen.

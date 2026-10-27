@@ -156,8 +156,8 @@ clinicRouter.get(["/state","/state/summary","/state/history"], async (req, res) 
     }
 
     // Only annotate appointments already selected by this user's scope/page.
-    const admissionStates = apptsRes.rows.length ? (await query('SELECT appt_id,status FROM admissions WHERE appt_id=ANY($1::varchar[])',[apptsRes.rows.map(a=>a.id)])).rows : [];
-    const admissionByVisit = new Map(admissionStates.map(row=>[row.appt_id,row.status]));
+    const admissionStates = apptsRes.rows.length ? (await query('SELECT id,appt_id,status FROM admissions WHERE appt_id=ANY($1::varchar[])',[apptsRes.rows.map(a=>a.id)])).rows : [];
+    const admissionByVisit = new Map(admissionStates.map(row=>[row.appt_id,row]));
 
     // Attach weights to pets
     const weightsByPet = {};
@@ -231,7 +231,8 @@ clinicRouter.get(["/state","/state/summary","/state/history"], async (req, res) 
       changeAmount: a.payment_details?.changeAmount || 0,
       receivedBy: a.payment_details?.receivedBy || "",
       paidAt: a.paid_at || null,
-      admissionStatus: admissionByVisit.get(a.id) || null,
+      admissionId: admissionByVisit.get(a.id)?.id || null,
+      admissionStatus: admissionByVisit.get(a.id)?.status || null,
       invoiceItems: a.invoice_items || [],
       intakeVitals: a.intake_vitals || null,
       handoffs: owner ? [] : (a.handoffs || []),

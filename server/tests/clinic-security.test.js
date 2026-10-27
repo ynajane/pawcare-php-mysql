@@ -32,6 +32,7 @@ const fakeQuery = async (sql, params = []) => {
   if (sql.startsWith('-- Add document publication') || sql.startsWith('-- Preserve source records') || sql.startsWith('-- Add audit metadata') || sql.startsWith('-- Rename legacy states') || sql.startsWith('-- Preserve owner-submitted') || sql.startsWith('-- Durable reception') || sql.startsWith('-- Idempotent migration') || sql.startsWith('SELECT pg_advisory_xact_lock')) return rows([]);
   if (sql.startsWith("SELECT version FROM pawcare_schema_migrations WHERE version='admission-care-v1'")) return rows([{version:'admission-care-v1'}]);
   if (sql.startsWith('-- Admission is separate') || sql.startsWith('-- Extend existing stays')) return rows([]);
+  if (sql.startsWith('SELECT id,appt_id,status FROM admissions WHERE appt_id')) return rows((db.admissions || []).filter(row => params[0].includes(row.appt_id)));
   if (sql.includes('FROM admissions WHERE appt_id') || sql.includes('FROM admission_updates e JOIN admissions')) return rows([]);
   if (sql.startsWith('ALTER TABLE')) return rows([]);
   if(sql==='SELECT * FROM clinic_document_profile WHERE id=true')return rows([]);
@@ -159,6 +160,17 @@ for (const role of roles) test(`${role} state uses the proper record scope and a
   if (scoped) { assert.match(apptQuery.sql, /WHERE/); assert.ok(apptQuery.params.length); }
   assert.equal(calls.some(c => c.sql.startsWith('SELECT * FROM audit_logs')), role === 'admin');
   assert.deepEqual(data.data.log, []);
+});
+test('state links the exact admission to its visit without exposing another scoped visit',async () => {
+  db.admissions = [{id:'stay-one',appt_id:'a1',status:'Ready for discharge'},{id:'stay-two',appt_id:'a2',status:'Discharged'}];
+  for (const role of roles) {
+    const result = await request(role,'GET','/state');
+    assert.equal(result.status,200);
+    const own = result.data.data.appts.find(a => a.id === 'a1');
+    assert.equal(own.admissionId,'stay-one');
+    assert.equal(own.admissionStatus,'Ready for discharge');
+    assert.equal(JSON.stringify(result.data).includes('stay-two'),['assistant','admin'].includes(role));
+  }
 });
 for (const role of roles) test(`${role} cannot spoof actorRole to gain another role's privileges`, async () => {
   const forbidden = role === 'admin' ? endpoints.filter(([m,path]) => m !== 'GET' && !path.startsWith('/admin/')) : role === 'owner' ? [['POST', '/consultations'], ['POST', '/appointments/a1/billing'], ['POST', '/walk-in'], ['POST', '/logs'], ['POST', '/pet-requests/r1/approve']] : role === 'assistant' ? [['POST', '/consultations'], ['POST', '/vaccinations'], ['GET', '/logs'], ['POST', '/logs']] : [['POST', '/appointments'], ['PUT', '/appointments/a1'], ['POST', '/appointments/a1/billing'], ['POST', '/walk-in'], ['POST', '/pet-requests/r1/approve'], ['GET', '/logs']];

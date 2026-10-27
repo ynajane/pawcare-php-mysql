@@ -121,6 +121,11 @@ test('vet approval, saved payment and reception release are distinct; retries do
   assert.equal((await call('assistant','POST',`${path}/release`,release)).status,200);
   assert.equal((await call('assistant','POST',`${path}/release`,release)).status,200,'release retry is safe');
   const released=(await call('owner','GET',path)).data.admission; assert.equal(released.status,'Discharged'); assert.ok(released.dischargedAt);
+  const stateResponse = await fetch(`http://127.0.0.1:${server.address().port}/api/state`,{headers:{Authorization:'Bearer admission-assistant'}});
+  assert.equal(stateResponse.status,200);
+  const stateVisit = (await stateResponse.json()).data.appts.find(row=>row.id===f.visit.id);
+  assert.equal(stateVisit.admissionId,f.admission.id,'receipt links to the exact saved admission');
+  assert.equal(stateVisit.admissionStatus,'Discharged','refresh retains the confirmed release status');
   assert.ok((await call('owner','GET','?status=Discharged')).data.admissions.some(row=>row.id===f.admission.id));
   const repeat = await fixture('In consultation',f.visit.pet_id);
   assert.equal((await call('vet','POST','',repeat.body)).status,200,'a new visit can start a later stay');
