@@ -130,6 +130,31 @@ test('vet approval, saved payment and reception release are distinct; retries do
   const repeat = await fixture('In consultation',f.visit.pet_id);
   assert.equal((await call('vet','POST','',repeat.body)).status,200,'a new visit can start a later stay');
 });
+test('release rejects blank notes and stale revisions; concurrent confirmations save one release',async () => {
+  const f = await admit('Completed'), path = `/${f.admission.id}`;
+  assert.equal((await call('vet','POST',`${path}/discharge`,update(0,{dischargeInstructions:'Saved instructions for home care.'}))).status,200);
+  await query("UPDATE appointments SET billing_status='Paid' WHERE id=$1",[f.visit.id]);
+  assert.equal((await call('assistant','POST',`${path}/release`,update(1,{clinicalNote:'   '}))).status,400);
+  assert.equal((await call('assistant','POST',`${path}/release`,update(0))).status,409);
+  const results = await Promise.all([update(1),update(1)].map(body=>call('assistant','POST',`${path}/release`,body)));
+  assert.deepEqual(results.map(result=>result.status).sort(),[200,409]);
+  assert.equal((await query("SELECT count(*)::int n FROM admission_updates WHERE admission_id=$1 AND kind='Release'",[f.admission.id])).rows[0].n,1);
+  const saved = (await call('assistant','GET',path)).data.admission;
+  assert.equal(saved.status,'Discharged'); assert.equal(saved.revision,2); assert.ok(saved.dischargedAt);
+});
+test('release status, timestamp and timeline roll back when its audit cannot save',async () => {
+  const f = await admit('Completed'), path = `/${f.admission.id}`;
+  assert.equal((await call('vet','POST',`${path}/discharge`,update(0,{dischargeInstructions:'Saved instructions for home care.'}))).status,200);
+  await query("UPDATE appointments SET billing_status='Paid' WHERE id=$1",[f.visit.id]);
+  const body = update(1);
+  await query("CREATE FUNCTION reject_release_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action LIKE 'Released admission%' THEN RAISE EXCEPTION 'Synthetic release audit failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_release_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION reject_release_audit()");
+  try { assert.equal((await call('assistant','POST',`${path}/release`,body)).status,500); }
+  finally { await query('DROP TRIGGER reject_release_audit ON audit_logs'); }
+  const unchanged = (await call('assistant','GET',path)).data.admission;
+  assert.equal(unchanged.status,'Ready for discharge'); assert.equal(unchanged.revision,1); assert.equal(unchanged.dischargedAt,null);
+  assert.equal((await query("SELECT count(*)::int n FROM admission_updates WHERE admission_id=$1 AND kind='Release'",[f.admission.id])).rows[0].n,0);
+  assert.equal((await call('assistant','POST',`${path}/release`,body)).status,200,'same request can be retried after rollback');
+});
 test('timeline pagination preserves sub-millisecond ordering and filters private events before paging',async () => {
   const f = await admit(); const path = `/${f.admission.id}`;
   await query(`INSERT INTO admission_updates(id,admission_id,kind,clinical_note,owner_update,actor_id,actor_name,actor_role,request_payload,created_at)

@@ -19,7 +19,7 @@ export default function AdmissionForm({mode,admission,visits = [],consultationCo
   const validation = useFormValidation(admissionErrors({...form,alternateContact},{mode,vet:me.role==='vet',visits:sources}));
   const visit = sources.find(row => row.id === form.apptId);
   const dirty = Object.entries(form).some(([key,value]) => key !== 'apptId' && value !== '' && value !== false);
-  const review = useSubmissionReview([form,visit,admission?.revision,admission?.status]);
+  const review = useSubmissionReview([form,visit,admission?.revision,admission?.status,admission?.billingStatus]);
   const set = (key,value) => setForm(previous => ({...previous,[key]:value,...(['carePlan','observationInstructions','planTemplate','observationTemplate'].includes(key)?{planConfirmed:false}:{})}));
   const template=(key,value,field,templates)=>setForm(previous=>({...previous,[key]:value,[field]:templates[value] || '',planConfirmed:false}));
   const close = () => { if (!pending.current) dirty ? setDiscard(true) : onClose(); };
@@ -58,8 +58,9 @@ export default function AdmissionForm({mode,admission,visits = [],consultationCo
       ...(body.completeObservation ? [['Completed observation','I performed the scheduled check now. The saved time will be recorded by the clinic server.']] : []),
       ...(body.consentConfirmed ? [['Admission consent',`${body.consentName} · ${body.consentMethod} · confirmed as received by clinic staff`],['Contact',body.emergencyName ? `${body.emergencyName} · ${body.emergencyPhone} · ${body.emergencyRelationship}` : 'Use the owner’s saved contact details']] : []),
       ['Message visible to owner',body.ownerUpdate || 'No new owner message'],
-      ...(discharge ? [['Home-care instructions visible to owner',body.dischargeInstructions]] : [])];
-    if (!await review.ask({title:create ? 'Review pet admission' : discharge ? 'Review discharge' : 'Review admission update',confirmLabel:create ? 'Admit pet' : release ? 'Confirm release to owner' : discharge ? 'Approve discharge' : 'Save update',
+      ...(discharge ? [['Home-care instructions visible to owner',body.dischargeInstructions]] : []),
+      ...(release ? [['Admission status',admission.status],['Payment',admission.billingStatus],['Saved home-care instructions',admission.dischargeInstructions || 'None recorded']] : [])];
+    if (!await review.ask({title:create ? 'Review pet admission' : release ? 'Review pet release' : discharge ? 'Review discharge' : 'Review admission update',confirmLabel:create ? 'Admit pet' : release ? 'Confirm release to owner' : discharge ? 'Approve discharge' : 'Save update',
       description:release ? 'Confirm the pet was released to the owner after veterinarian approval and saved payment.' : discharge ? 'Approve discharge and share home-care instructions. Reception must record final payment before releasing the pet.' : 'Check the clinical notes and the exact message that will be shared with the owner.',fields})) return;
     const signature = JSON.stringify(body);
     if (request.current?.signature !== signature) request.current = {signature,id:crypto.randomUUID()};
@@ -67,6 +68,10 @@ export default function AdmissionForm({mode,admission,visits = [],consultationCo
     try {
       const result = await api.post(create ? '/api/admissions' : `/api/admissions/${admission.id}/${mode}`,{...body,requestId:request.current.id});
       if (!result.success || !result.admission?.id || !Number.isInteger(result.admission.revision) || (create ? result.admission.id !== request.current.id : result.admission.id !== admission.id)) throw Error('The server did not confirm this save. Keep your entries and retry to check the result.');
+      if (release && (result.admission.apptId !== admission.apptId || result.admission.status !== 'Discharged' || result.admission.billingStatus !== 'Paid'
+          || result.admission.revision <= revision || typeof result.admission.dischargedAt !== 'string' || !Number.isFinite(Date.parse(result.admission.dischargedAt)))) {
+        throw Error('The server did not confirm this release. Keep your entries and retry to check the result.');
+      }
       onSaved(result.admission);
     } catch (e) { setError(e.message); pending.current = false; setSaving(false); }
   };

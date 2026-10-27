@@ -2,6 +2,7 @@
 import { test, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { randomInt } from 'node:crypto';
 import pg from 'pg';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -12,7 +13,7 @@ if (!['localhost','127.0.0.1'].includes(url.hostname)) throw Error('Use a local 
 const admin = new pg.Pool({connectionString:url.href});
 const schema = `test_connected_${crypto.randomUUID().replaceAll('-','')}`;
 await admin.query(`CREATE SCHEMA ${schema}`);
-url.searchParams.set('options',`-c search_path=${schema},public`); process.env.DATABASE_URL = url.href;
+url.searchParams.set('options',`-c search_path=${schema},public`); url.searchParams.set('application_name',schema); process.env.DATABASE_URL = url.href;
 const {query,pool} = await import('../db.js');
 await query(readFileSync(new URL('../database/schema.sql',import.meta.url),'utf8'));
 await query(readFileSync(new URL('../database/appointment-status.sql',import.meta.url),'utf8'));
@@ -152,4 +153,45 @@ test('walk-in vaccination → intake → vet dose → checkout → owner/admin h
  }
  const before=(await query('SELECT count(*)::int n FROM vaccinations WHERE id=$1',[doseId])).rows[0].n;
  assert.equal(before,1,'billing never duplicates administration');
+});
+
+test('concurrent invoices cannot reuse a case-insensitive digital payment reference',async()=>{
+ const ids=[crypto.randomUUID(),crypto.randomUUID()];
+ const product=(await call('assistant','GET','/services/prices')).data.catalog.find(item=>item.id==='srv_consult');
+ const invoice=[{catalogId:product.id,name:product.name,price:product.price,qty:1,source:'performed'}];
+ const claims=[];
+ for(const id of ids){
+  await query("INSERT INTO appointments(id,pet_id,vet_id,date,time,reason,status,billing_status,invoice_items) VALUES($1,'connected-pet','connected-vet','2026-10-26','10:00','Synthetic concurrent checkout','Completed','Unpaid',$2)",[id,JSON.stringify(invoice)]);
+  await query("INSERT INTO consultations(id,pet_id,vet_id,appt_id,date,symptoms,objective,diagnosis,treatment,performed_services) VALUES($1,'connected-pet','connected-vet',$2,'2026-10-26','Recorded history','Recorded exam','Synthetic assessment','Synthetic home care',$3)",[crypto.randomUUID(),id,JSON.stringify(invoice)]);
+  const claimed=await call('assistant','POST',`/checkout-inbox/${id}/claim`,{});
+  assert.equal(claimed.status,200,JSON.stringify(claimed));claims.push(claimed.data.claimToken);
+ }
+ // Hold both requests at a database lock: before the fix both have already
+ // passed the duplicate lookup; after the fix the second waits at that lookup.
+ const gateKey=randomInt(1,2147483647),gate=await pool.connect();
+ await gate.query('SELECT pg_advisory_lock($1)',[gateKey]);
+ const idsSql=ids.map(id=>`'${id}'`).join(',');
+ await query(`CREATE FUNCTION pause_reference_payment() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id IN (${idsSql}) AND NEW.billing_status='Paid' THEN PERFORM pg_advisory_xact_lock(${gateKey}); END IF; RETURN NEW; END $$; CREATE TRIGGER pause_reference_payment BEFORE UPDATE ON appointments FOR EACH ROW EXECUTE FUNCTION pause_reference_payment()`);
+ const pay=(index,reference)=>call('assistant','POST',`/appointments/${ids[index]}/billing`,{claimToken:claims[index],invoiceItems:invoice,amount:product.price,paymentMethod:'GCash',paymentReference:reference});
+ const pending=Promise.all([pay(0,'SYNTHETIC-REFERENCE-001'),pay(1,' synthetic-reference-001 ')]);
+ let bothWaiting=false;
+ try{
+  for(let i=0;i<100;i++){
+   const waiting=await query("SELECT count(*)::int n FROM pg_stat_activity WHERE datname=current_database() AND usename=current_user AND application_name=$1 AND wait_event='advisory'",[schema]);
+   if(waiting.rows[0].n>=2){bothWaiting=true;break;}
+   await new Promise(resolve=>setTimeout(resolve,20));
+  }
+ }finally{
+  await gate.query('SELECT pg_advisory_unlock($1)',[gateKey]);gate.release();
+ }
+ let responses;
+ try{responses=await pending;}finally{await query('DROP TRIGGER pause_reference_payment ON appointments; DROP FUNCTION pause_reference_payment()');}
+ assert.ok(bothWaiting,'both concurrent requests reached the database barrier');
+ assert.deepEqual(responses.map(response=>response.status).sort(),[200,409]);
+ const stored=(await query('SELECT id,billing_status,payment_details FROM appointments WHERE id=ANY($1::varchar[])',[ids])).rows;
+ assert.equal(stored.filter(row=>row.billing_status==='Paid').length,1,'one payment is saved');
+ const loser=responses.findIndex(response=>response.status===409);
+ assert.match(responses[loser].data.error,/already used/);
+ assert.equal(stored.find(row=>row.id===ids[loser]).billing_status,'Unpaid');
+ assert.equal((await pay(loser,'SYNTHETIC-REFERENCE-002')).status,200,'rejected invoice can retry with a distinct actual reference');
 });

@@ -23,6 +23,9 @@ export async function assertOwnerContactFree(client, { phone, email, excludeId =
 export async function assertPaymentReferenceUnused(client, { reference, appointmentId }) {
   const text = String(reference ?? '').trim();
   if (!text) return;
+  // Different invoices hold different row locks. Serialize the same reference
+  // until commit so the next lookup sees the winning saved payment.
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended('pawcare:payment-reference:' || LOWER($1), 0))", [text]);
   const hit = (await client.query("SELECT id FROM appointments WHERE id <> $1 AND billing_status = 'Paid' AND LOWER(TRIM(payment_details->>'reference')) = LOWER($2) LIMIT 1", [appointmentId, text])).rows[0];
   if (hit) throw conflict(`This payment reference was already used to settle visit ${hit.id}. Check the reference number.`, { refNo: 'This payment reference was already used for another invoice.' });
 }
