@@ -30,7 +30,6 @@ buildSync({
       export { default as ExistingPatientCheckInModal } from './src/roles/ExistingPatientCheckInModal.jsx';
       export { default as AdmissionForm} from './src/roles/AdmissionForm.jsx';
       export { default as Portal } from './src/Portal.jsx';
-      export { default as ReminderStatus } from './src/roles/ReminderStatus.jsx';
       export { default as PetApprovalModal } from './src/roles/PetApprovalModal.jsx';
       export { ConsultationDetailModal } from './src/roles/ConsultationsPage.jsx';
       export { default as Reports } from './src/roles/ReportsPage.jsx';
@@ -365,13 +364,12 @@ test('vet queue separates previous-day unfinished work without changing clinical
 });
 
 
-test('reminder initial render does not claim provider connectivity or owner delivery',()=>{
- const html=render(ui.ReminderStatus,{});
- assert.match(html,/Checking status/);
- assert.match(html,/Delivery to the owner is not confirmed/);
- assert.doesNotMatch(html,/All Reminders Running Smoothly|Dual Gateway Live|Delivered to pet owners|>Connected</);
-});
 
+for(const role of ['assistant','admin'])test(`${role} dashboard no longer shows the automatic vaccination recall reminders card`,()=>{
+ const html=render(ui.Portal,{...props(role,populated()),cfg:ui[role],onLogout(){}});
+ assert.match(html,role==='admin'?/Appointments by Status/:/Vaccine reminders/,'the dashboard itself must be on the page, so this check means something');
+ assert.doesNotMatch(html,/Automatic Vaccination Recall Reminders|Worker needs checking|Awaiting initial run/);
+});
 
 for(const role of ['owner','assistant','vet','admin'])test(`${role} complete portal renders role navigation with no page edits`,()=>{
  const html=render(ui.Portal,{...props(role,populated()),cfg:ui[role],onLogout(){}});

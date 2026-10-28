@@ -114,17 +114,6 @@ export function CheckEmail({ email, receipt, go }) {
 
         {/* 1-Click Webmail Quick Launchers */}
         <div className="webmail-shortcuts" aria-label="Quick email access">
-          {isGmail && (
-            <a
-              href="https://mail.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="webmail-btn"
-              style={{ borderColor: "#ea4335", color: "#c5221f" }}
-            >
-              <ExternalLink size={14} /> Open Gmail
-            </a>
-          )}
           {isOutlook && (
             <a
               href="https://outlook.live.com"
@@ -147,7 +136,7 @@ export function CheckEmail({ email, receipt, go }) {
               <ExternalLink size={14} /> Open Yahoo Mail
             </a>
           )}
-          {!isGmail && !isOutlook && !isYahoo && (
+          {!isOutlook && !isYahoo && !isGmail && (
             <>
               <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="webmail-btn">
                 <ExternalLink size={13} /> Gmail

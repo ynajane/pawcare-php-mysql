@@ -90,7 +90,17 @@ export async function sendMail(to, subject, text, html) {
   return { ok: true, via: 'dev_outbox' };
 }
 
-export async function sendSms(phone, message) {
+// Gateways need international format: 09171234567 / 9171234567 / 639171234567 -> +639171234567
+export function toE164PH(raw) {
+  const d = String(raw || '').replace(/[^\d]/g, '');
+  if (/^0\d{10}$/.test(d)) return '+63' + d.slice(1);
+  if (/^9\d{9}$/.test(d)) return '+63' + d;
+  if (/^63\d{10}$/.test(d)) return '+' + d;
+  return String(raw || '').trim();
+}
+
+export async function sendSms(rawPhone, message) {
+  const phone = toE164PH(rawPhone);
   const record = {
     id: Math.random().toString(36).substring(2, 9),
     phone,
@@ -146,7 +156,7 @@ export async function sendSms(phone, message) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          recipient: phone,
+          recipient: phone.replace(/^\+/, ''),
           sender_id: 'PhilSMS',
           type: 'plain',
           message: message,

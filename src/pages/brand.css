@@ -255,9 +255,10 @@
 }
 
 /* Quick tips card */
-.verify-tips-box{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:12px 16px;margin:16px 0 20px;text-align:left;font-size:calc(12.5px*var(--fs,1));color:#64748b;line-height:1.55}
-.verify-tips-box b{color:var(--navy);display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:calc(13px*var(--fs,1))}
-.verify-tips-box ul{margin:0;padding-left:18px}
+.verify-tips-box{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:10px 14px;margin:12px 0 16px;text-align:left;font-size:calc(12px*var(--fs,1));color:#64748b;line-height:1.5}
+.verify-tips-box b{color:var(--navy);font-weight:700}
+.verify-tips-box > b{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:calc(12.5px*var(--fs,1))}
+.verify-tips-box ul{margin:0;padding-left:16px}
 .verify-tips-box li{margin-bottom:2px}
 
 /* Verifying loading screen */

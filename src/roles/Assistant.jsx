@@ -10,7 +10,6 @@ import ExistingPatientCheckInModal from "./ExistingPatientCheckInModal.jsx";
 import { assistantQueue, pendingVisitApprovals, registrationsWithoutVisit, dailyCollections, pendingCheckout, money } from "../assistantWorkflow.js";
 import CareFollowUps from "./CareFollowUps.jsx";
 import CheckoutInbox from "./CheckoutInbox.jsx";
-import ReminderStatus from "./ReminderStatus.jsx";
 import { currentVaccinationDue, vaccinationAppointment, vaccinationBooking, vaccinationStatus } from "../ownerVaccination.js";
 import { today, plus } from "../booking.js";
 import { setPrefill, SearchField } from "./owner/ui.jsx";
@@ -266,7 +265,6 @@ function Dash({ db, setDb, me, go, say, navigation, onNavigationHandled }) {
 
           </div>
           <div id="desk-reminders">
-        <ReminderStatus />
         <section className="card">
           <div className="sf-section-hd">
             <h3>Vaccine reminders ({calls.length})</h3>

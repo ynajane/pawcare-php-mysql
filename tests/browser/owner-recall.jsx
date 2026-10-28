@@ -10,7 +10,6 @@ import {OwnerVacc} from '../../src/roles/owner/VaccCard.jsx';
 import OwnerHeader from '../../src/roles/owner/Header.jsx';
 import StaffHeader from '../../src/roles/StaffHeader.jsx';
 import {PetFormModal} from '../../src/roles/owner/Pets.jsx';
-import ReminderStatus from '../../src/roles/ReminderStatus.jsx';
 import {emptyClinicState} from '../../src/clinicState.js';
 const owner={id:'owner',name:'Synthetic owner',userId:'client',phone:'+639170000001',email:'synthetic@example.invalid',address:'Synthetic address'};
 const client={id:'client',ownerId:'owner',name:owner.name,role:'owner'},staff={id:'staff',name:'Synthetic staff',role:'assistant'};
@@ -26,14 +25,11 @@ function Screen({name}){
  window.ownerRecallDb=db;
  const props={db,setDb,me:client,say:message=>window.lastMessage=message,go:(page,context)=>window.lastNavigation={page,context},onLogout:()=>{}};
  return <div className={`shell th-${name==='account-staff'?'assistant':'owner'}`}><div className="main"><main className="content" id="portal-main">
- {name==='owner-card'?<OwnerVacc {...props}/>:name==='account-owner'?<OwnerHeader {...props}/>:name==='account-staff'?<StaffHeader {...props} me={staff}/>:name==='pet-form'?<PetFormModal {...props} onClose={()=>{}}/>:name==='reminders'?<ReminderStatus/>:null}
+ {name==='owner-card'?<OwnerVacc {...props}/>:name==='account-owner'?<OwnerHeader {...props}/>:name==='account-staff'?<StaffHeader {...props} me={staff}/>:name==='pet-form'?<PetFormModal {...props} onClose={()=>{}}/>:null}
  </main></div></div>;
 }
 window.showOwnerRecall=name=>{window.lastMessage='';window.lastNavigation=null;flushSync(()=>root.render(<Screen key={++key} name={name}/>));};
-const nativeInterval=window.setInterval.bind(window),nativeTimeout=window.setTimeout.bind(window);
-window.setInterval=(fn,ms,...args)=>{if(ms===30000)window.recallPoll=fn;return nativeInterval(fn,ms,...args);};
-window.setTimeout=(fn,ms,...args)=>{if(ms===15000)window.recallTimeout=fn;return nativeTimeout(fn,ms,...args);};
-window.photoWrites=0;window.statusReads=0;window.statusAborts=0;
+window.photoWrites=0;
 window.fetch=async(path,options={})=>{
  const url=String(path),json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
  if(url.endsWith('/photo') && options.method==='POST'){
@@ -42,16 +38,6 @@ window.fetch=async(path,options={})=>{
   if(window.photoReply==='missing')return json({});
   const data=url.includes('/auth/')?{photo:window.photoReply==='wrong'?'different':window.photoPayload.photo}:{success:true,pet:{id:window.photoReply==='wrong'?'other':url.split('/').at(-2),photo:window.photoPayload.photo,weight:999}};
   return json(data);
- }
- if(url==='/api/reminders/status'){
-  window.statusReads++;
-  await new Promise((resolve,reject)=>{
-   const cancel=()=>{window.statusAborts++;reject(Error('Aborted'));};
-   options.signal?.addEventListener('abort',cancel,{once:true});
-   window.statusGate=()=>{options.signal?.removeEventListener('abort',cancel);resolve();};
-  });
-  if(window.statusReply==='fail')return json({error:'Synthetic status failure'},503);
-  return json(window.statusReply==='missing'?{}:window.statusReply);
  }
  if(url.endsWith('/vet-card')){const id=url.split('/').at(-2);return json({history:{pet:base.pets.find(p=>p.id===id),owner,events:[]},document:{}});}
  if(url.includes('/services/prices'))return json({catalog:[]});
@@ -99,23 +85,7 @@ window.checkOwnerRecallFixes=async()=>{
  }
  window.showOwnerRecall('pet-form');await tick();pick('.ow-photo input');await until(()=>document.querySelector('.ow-photo img'));
  assert(window.photoWrites===writes,'Registration photo stays a draft until form submission');
- window.statusReply='fail';window.showOwnerRecall('reminders');await tick();
- assert(!document.body.textContent.includes('Providers configured') && !document.body.textContent.includes('All Reminders Running Smoothly'),'Initial status has no healthy claim');
- let reads=window.statusReads;window.recallPoll();await tick();assert(window.statusReads===reads,'Concurrent reminder poll blocked');
- window.statusGate();await until(()=>document.querySelector('[role=alert]'));
- assert(document.body.textContent.includes('Status unavailable') && !document.body.textContent.includes('No failed or uncertain sends are recorded.'),'Failed initial status has no green claim');
- const healthy={summary:{pending:2,accepted:3},attention:[],health:{emailConfigured:true,smsConfigured:true,overdue:0,lastRun:new Date(Date.now()-24*60*60*1000).toISOString()}};
- const refresh=async reply=>{window.statusReply=reply;button('Refresh').click();reads++;await until(()=>window.statusReads===reads);window.statusGate();await until(()=>!button('Checking...'));};
- await refresh(healthy);assert(document.body.textContent.includes('Providers configured') && document.body.textContent.includes('Delivery to the owner is not confirmed'),'Daily worker and accepted sends described accurately');
- await refresh('fail');assert(document.body.textContent.includes('may be out of date') && !document.body.textContent.includes('No failed or uncertain sends are recorded.'),'Failed refresh marks cached snapshot stale');
- await refresh('missing');assert(document.body.textContent.includes('complete reminder status') && !document.body.textContent.includes('Providers configured'),'Incomplete response never treated as empty healthy queue');
- await refresh({...healthy,health:{...healthy.health,lastRun:null}});assert(document.body.textContent.includes('No completed reminder run'),'Missing worker run visible');
- await refresh({...healthy,health:{...healthy.health,lastRun:new Date(Date.now()-48*60*60*1000).toISOString()}});assert(document.body.textContent.includes('no recent completed run'),'Stale worker visible');
- await refresh({...healthy,health:{...healthy.health,overdue:2}});assert(document.body.textContent.includes('2 pending reminders are overdue'),'Overdue queue visible');
- await refresh({...healthy,summary:{failed:1,uncertain:1},attention:[{id:'issue',petName:'Synthetic patient',vaccine:'Anti-rabies',dueDate:'2026-10-27',channel:'sms',status:'uncertain'}]});assert(document.body.textContent.includes('Follow-up needed') && document.body.textContent.includes('Check gateway transmission log'),'Uncertain send retains manual follow-up guidance');
- window.statusReply=healthy;button('Refresh').click();reads++;await until(()=>window.statusReads===reads);window.recallTimeout();await until(()=>document.body.textContent.includes('timed out'));assert(document.body.textContent.includes('Status unavailable'),'Timeout is actionable');
- button('Refresh').click();await until(()=>window.statusReads===reads+1);const aborts=window.statusAborts;window.showOwnerRecall('empty');await tick();assert(window.statusAborts===aborts+1,'Leaving page aborts outstanding status request');
- const result={ownerPhotoAcknowledgements:4,profilePhotoAcknowledgements:8,multiPetIsolation:true,profileBusyAndDraftGuard:true,registrationPhotoDraft:true,reminderFreshnessAndRetry:true,reminderOverlapAndAbort:true,viewport:[innerWidth,innerHeight]};
+ const result={ownerPhotoAcknowledgements:4,profilePhotoAcknowledgements:8,multiPetIsolation:true,profileBusyAndDraftGuard:true,registrationPhotoDraft:true,viewport:[innerWidth,innerHeight]};
  document.getElementById('results').textContent='PASS: '+JSON.stringify(result);return result;
 };
-window.statusReply='fail';window.showOwnerRecall('owner-card');
+window.showOwnerRecall('owner-card');

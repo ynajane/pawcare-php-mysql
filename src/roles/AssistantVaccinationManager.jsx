@@ -1,7 +1,6 @@
 import LiveControl from '../components/LiveControl.jsx';
 import { SearchField } from "./owner/ui.jsx";
 import { PaginatedTable } from "../components/Pagination.jsx";
-import ReminderStatus from "./ReminderStatus.jsx";
 import { currentVaccinationDue } from "../vaccinationDue.js";
 import { useState } from "react";
 import {
@@ -174,7 +173,6 @@ export default function AssistantVaccinationManager({ db, setDb, me, say }) {
 
   return (
     <div style={{ padding: "0 0 24px" }}>
-      <ReminderStatus />
       {/* Top Header Card */}
       <div className="card" style={{ marginBottom: "16px", padding: "16px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>

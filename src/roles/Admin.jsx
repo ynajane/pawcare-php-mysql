@@ -8,7 +8,6 @@ import { auditActivity } from "../auditActivity.js";
 import { PaginatedList } from "../components/Pagination.jsx";
 import { useSubmissionReview } from "../components/SubmissionReview.jsx";
 import AdminStaff, { useAdminStaff, AdminAudit } from "./AdminStaff.jsx";
-import ReminderStatus from "./ReminderStatus.jsx";
 import { currentVaccinationDue } from "../vaccinationDue.js";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -634,7 +633,6 @@ function Dash({ db, setDb, me, go, say }) {
           </div>
         </div>
       </section>
-      <ReminderStatus />
       <div className="two admin-breakdowns" style={{ marginTop: "16px" }}>
         <Bars title="Appointments by Status" data={db.totals?.appointment_status || by(db.appts, "status")} />
         {staff.data ? (
