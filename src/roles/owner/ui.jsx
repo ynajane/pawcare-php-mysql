@@ -76,13 +76,15 @@ export function Field({ id, label, req, type = "text", value, onChange, onBlur, 
 export const searchText = s => tidy(s.replace(/[^A-Za-zÀ-ÿ0-9 .,'’#&/@:()+_\-]/g, ""));
 
 /* Search box with live checks: typing guard, length limit, counter, clear button and a result hint. */
-export function SearchField({ id, label, value, onChange, placeholder, max = 60, hint, result }) {
+export function SearchField({ id, label, value, onChange, placeholder, max = 60, hint, result, lettersOnly = false }) {
   const [blk, setBlk] = useState(""), tm = useRef(), ref = useRef();
   useEffect(() => () => clearTimeout(tm.current), []);
+  // lettersOnly: names only. Numbers and special characters are dropped as they are typed.
+  const clean = s => lettersOnly ? tidy(s.replace(/[^A-Za-zÀ-ÿ ]/g, "")) : searchText(s);
   const change = e => {
-    const raw = e.target.value, val = searchText(raw).slice(0, max);
+    const raw = e.target.value, val = clean(raw).slice(0, max);
     if (raw.replace(/\s/g, "") !== val.replace(/\s/g, "")) {
-      setBlk(searchText(raw).length > max ? `Keep your search under ${max} characters` : "Only letters, numbers and basic punctuation can be searched");
+      setBlk(clean(raw).length > max ? `Keep your search under ${max} characters` : lettersOnly ? "Only letters can be searched. No numbers or special characters." : "Only letters, numbers and basic punctuation can be searched");
       clearTimeout(tm.current); tm.current = setTimeout(() => setBlk(""), 2400);
     } else if (blk) setBlk("");
     onChange(val);

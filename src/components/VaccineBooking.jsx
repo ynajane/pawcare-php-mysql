@@ -10,8 +10,18 @@ export function BookingCatalogProvider({children}) {
   return <Catalog.Provider value={read}>{children}</Catalog.Provider>;
 }
 export function useBookingCatalog(){return useContext(Catalog);}
-export function VaccinePicker({value,onChange,species,petSelected=true,error,id='booking-vaccine',disabled=false}) {
+export function VaccinePicker({value,onChange,species,petSelected=true,error,id='booking-vaccine',disabled=false,plain=false}) {
   const read=useBookingCatalog(),catalog=read?.data?.catalog || [];
+  // Plain: the same label + select as the other form fields, with the price as a one-line note.
+  if(plain)return <div className="sf-field">
+    <label htmlFor={id}>Vaccine *</label>
+    <LiveControl as="select" name="vaccineId" required error={error || (value ? vaccineChoiceError(value,species) : '')} id={id} value={value} disabled={disabled||!petSelected} onChange={e=>onChange(e.target.value)} aria-invalid={!!error}>
+      <option value="">{petSelected?'Choose a vaccine':'Choose a patient first'}</option>
+      {VACCINE_CHOICES.filter(c=>!vaccineChoiceError(c.id,species)).map(c=><option key={c.id} value={c.id}>{c.name}{vaccinePrice(c.id,catalog)!==null?` — ${phpPrice(vaccinePrice(c.id,catalog))}`:''}</option>)}
+    </LiveControl>
+    {value && <small>{vaccinePriceLabel(value,catalog)}. The veterinarian confirms suitability before administering.</small>}
+    {read?.error && <small role="status">Prices could not load. <button type="button" className="btn sm ghost" onClick={()=>read.load()}>Retry prices</button></small>}
+  </div>;
   return <section className="vaccine-picker" aria-label="Requested vaccine">
     <label htmlFor={id}><Syringe size={18} aria-hidden="true" />Which vaccine is this visit for? <span>*</span></label>
     <LiveControl as="select" name="vaccineId" required error={error || (value ? vaccineChoiceError(value,species) : '')} id={id} value={value} disabled={disabled||!petSelected} onChange={e=>onChange(e.target.value)} aria-invalid={!!error} aria-describedby={`${id}-hint`}>

@@ -35,7 +35,7 @@ export default function ExistingPatientCheckInModal({ db, setDb, me, onClose, on
   const filteredPets = (db.pets || []).filter(p => {
     if (!term) return true;
     const owner = (db.owners || []).find(o => sameOwner(o, p.ownerId)) || {};
-    return [p.name, p.species, p.breed, owner.name].some(x => (x || "").toLowerCase().includes(term)) || (owner.phone || "").includes(term);
+    return [p.name, p.species, p.breed, owner.name].some(x => (x || "").toLowerCase().includes(term));
   });
   const selectedPet = (db.pets || []).find(p => p.id === selectedPetId);
   const selectedOwner = selectedPet ? (db.owners || []).find(o => sameOwner(o, selectedPet.ownerId)) : null;
@@ -117,7 +117,7 @@ export default function ExistingPatientCheckInModal({ db, setDb, me, onClose, on
 
         <form {...validation.formProps} onSubmit={handleSubmit}><fieldset disabled={busy} style={{border:0,padding:0,margin:0}}>
           {review.card}
-          <SearchField id="exw-search" label="Search patient or owner" value={search} onChange={setSearch} placeholder="Pet name, breed, owner or mobile number" />
+          <SearchField id="exw-search" label="Search patient or owner" value={search} onChange={setSearch} lettersOnly placeholder="Pet name, breed or owner name" />
 
           <div className="sf-field">
             <label htmlFor="exw-pet">Patient *</label>
@@ -125,7 +125,7 @@ export default function ExistingPatientCheckInModal({ db, setDb, me, onClose, on
               <option value="">{filteredPets.length ? "Choose a patient" : "No matching patients"}</option>
               {[...filteredPets,...(selectedPet && !filteredPets.includes(selectedPet) ? [selectedPet] : [])].map(p => {
                 const o = (db.owners || []).find(x => sameOwner(x, p.ownerId)) || {};
-                return <option key={p.id} value={p.id}>{p.name} ({p.species}, {p.breed || "Breed not recorded"}) - {o.name || "Client"}{o.phone ? ` ${o.phone}` : ""}</option>;
+                return <option key={p.id} value={p.id}>{p.name} ({p.species}, {p.breed || "Breed not recorded"}) - {o.name || "Client"}</option>;
               })}
             </select>{validation.feedback('patient')}
           </div>
@@ -159,7 +159,7 @@ export default function ExistingPatientCheckInModal({ db, setDb, me, onClose, on
           {!alreadyToday && <>
 
           <div className="sf-field"><label htmlFor="exw-service">Purpose of visit *</label><select id="exw-service" value={service} disabled={busy} onChange={e=>{setService(e.target.value);setVaccineId('');setReason({checkup:'Walk-in consultation and routine exam',deworming:'Routine deworming',grooming:'Grooming and sanitary care'}[e.target.value] || 'Vaccination consultation');}}><option value="checkup">Consultation</option><option value="vaccination">Vaccination</option><option value="deworming">Deworming</option><option value="grooming">Grooming</option></select></div>
-          {service === 'vaccination' && <VaccinePicker id="exw-vaccine" error={validation.errors.vaccineId} value={vaccineId} onChange={value=>{setVaccineId(value);validation.changed('vaccineId');}} species={selectedPet?.species} petSelected={!!selectedPet} disabled={busy} />}
+          {service === 'vaccination' && <VaccinePicker plain id="exw-vaccine" error={validation.errors.vaccineId} value={vaccineId} onChange={value=>{setVaccineId(value);validation.changed('vaccineId');}} species={selectedPet?.species} petSelected={!!selectedPet} disabled={busy} />}
           {service !== 'vaccination' && <div className="sf-field">
             <label htmlFor="exw-reason">Reason for visit *</label>
             <input {...validation.field('reason')} id="exw-reason" type="text" required minLength={3} maxLength={300} disabled={busy} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Cough, routine check-up" />{validation.feedback('reason')}
