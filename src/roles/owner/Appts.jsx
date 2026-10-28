@@ -29,12 +29,12 @@ const NOTE_IDEAS = ["My pet is nervous around other animals.", "Please call me b
 const CANCEL_WHY = ["Schedule conflict", "My pet is feeling better", "Booked by mistake", "Need a different date", "Other"];
 const STATUS_NOTE = { 'Pending Approval': "Waiting for the clinic to confirm", Scheduled: "Approved. Please arrive 10 minutes early", "Checked-in": "You’re checked in. The vet will call you in", "In consultation": "The vet is seeing your pet now", Completed: "Done. See Visit History for notes", Cancelled: "This visit was cancelled", "No-show": "Marked as missed", Rejected: "The clinic declined this request. Open it to read the reason" };
 const mkRules = (db, me, editing) => v => ({...bookingReasonErrors(v.service,v.reasonChoice,v.otherReason),...validateOwnerBooking(v, {
-  pets: scope(db, me, "pets").filter(p=>p.registrationStatus!=="Declined"), vets: db.vets || [], appointments: db.appts, records: db.records, editing
+  pets: scope(db, me, "pets").filter(p=>!p.registrationStatus || p.registrationStatus==="Verified"), vets: db.vets || [], appointments: db.appts, records: db.records, editing
 })});
 
 function BookForm({ db, setDb, me, say, editing, start, onClose, onExisting }) {
   const TODAY = bookingToday(), LAST = lastDay();
-  const pets = scope(db, me, "pets").filter(p=>p.registrationStatus!=="Declined"), owner = db.owners.find(o => o.id === me.ownerId) || {};
+  const pets = scope(db, me, "pets").filter(p=>!p.registrationStatus || p.registrationStatus==="Verified"), owner = db.owners.find(o => o.id === me.ownerId) || {};
   const prev = editing ? serviceOf(editing) : "", requested = editing ? prev : start?.service || (start?.reason ? inferService(start.reason) : ""),
     // Surgery and dental are no longer booked directly; an old shortcut opens a check-up instead.
     svc0 = !editing && SERVICES[requested]?.retired ? "checkup" : requested;
@@ -264,7 +264,7 @@ export default function OwnerAppts({ db, setDb, me, say }) {
   const TODAY = bookingToday();
   const [modal, setModal] = useState(() => prefill.data ? { book: true, start: prefill.data } : null), [q, setQ] = useState(""), [view, setView] = useState("upcoming"), [pet, setPet] = useState(""), [svc, setSvc] = useState(""), [day, setDay] = useState("");
   useEffect(() => { prefill.data = null; }, []);
-  const pets = scope(db, me, "pets").filter(p=>p.registrationStatus!=="Declined");
+  const pets = scope(db, me, "pets").filter(p=>!p.registrationStatus || p.registrationStatus==="Verified");
   const selectedVisit = scope(db, me, "appts").find(a => a.id === (modal?.view?.id || modal?.cancel?.id));
   let list = scope(db, me, "appts").slice();
   const live = a => OPEN.includes(a.status) || ["Checked-in", "In consultation"].includes(a.status);

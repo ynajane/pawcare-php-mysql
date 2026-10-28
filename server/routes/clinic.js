@@ -1205,6 +1205,7 @@ async function saveBooking(req, res, editing = false) {
       await lockRegistrationOwner(client,patient.owner_id);
       const registration=(await client.query('SELECT registration_status FROM pets WHERE id=$1',[v.petId])).rows[0];
       if(registration?.registration_status==='Declined') throw bookingError('Correct and resubmit this pet registration before requesting a visit.',409);
+      if(req.user.role==='owner' && registration?.registration_status==='Pending') throw bookingError('This pet is still pending verification. You can book a visit once the clinic has verified it.',409);
       // The old assessment slot is no longer offered. Visits already booked with it can still be rescheduled.
       if(v.service==='surgery' && previous?.service!=='surgery') throw bookingError('This service is no longer offered. Book a check-up instead.');
       if(previous && req.user.role==='assistant') {

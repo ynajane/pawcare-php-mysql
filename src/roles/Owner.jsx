@@ -33,7 +33,7 @@ function Dash({ db, setDb, me, go, say }) {
   const first = me.name.split(" ")[0];
   const steps = [
     ["plus", "Add your pet", "Name, species, birth date and weight.", () => setModal({ form: true })],
-    ["calendar", "Request a visit", "Book while registration is pending verification.", () => book()],
+    ["calendar", "Request a visit", "Available once the clinic has verified your pet.", () => book()],
     ["clock", "The clinic reviews it", "Track registration and appointment updates here."],
   ];
 
@@ -49,7 +49,7 @@ function Dash({ db, setDb, me, go, say }) {
           <button className="btn glass" onClick={()=>setModal({link:true})}>Link clinic records</button>
           <button className="btn glass" onClick={() => go("bills")}>Bills & payments</button>
           <button className="btn glass" onClick={() => go("prices")}>View services & prices</button>
-          {registered.some(p=>p.registrationStatus!=="Declined") && <button className="btn gold" onClick={() => book()}><Icon n="calendar" size={16} /> Book a visit</button>}
+          {pets.length > 0 && <button className="btn gold" onClick={() => book()}><Icon n="calendar" size={16} /> Book a visit</button>}
           <button className={pets.length ? "btn glass" : "btn gold"} disabled={!!blocked} title={blocked} onClick={() => setModal({ form: true })}><Icon n="plus" size={16} /> Add my pet</button>
         </div>
       </div>
