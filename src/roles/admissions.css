@@ -86,3 +86,6 @@
 }
 .admission-check{display:flex!important;align-items:flex-start;gap:10px}.admission-check input[type=checkbox]{width:auto;flex:0 0 auto;margin-top:4px}.admission-discharge{width:min(850px,100%)}.discharge-document p{white-space:pre-wrap;overflow-wrap:anywhere}.discharge-document li{break-inside:avoid}.discharge-document h3{margin-top:22px}
 .admission-form .admission-check input[type=checkbox] { width:18px; height:18px; min-height:18px; }
+/* Discharge and checkout: both buttons share one left-aligned row at the same size. */
+.shell .admission-plan .admission-actions{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:10px}
+.shell .admission-plan .admission-actions .btn{margin:0;min-height:44px;display:inline-flex;align-items:center;justify-content:center}

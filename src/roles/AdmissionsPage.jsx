@@ -63,8 +63,12 @@ function AdmissionDetail({id,me,go,onBack,onChanged}) {
       <section className="admission-plan" aria-label="Discharge and checkout progress"><h3>Discharge and checkout</h3>
         <p>{admission.status === 'Admitted' ? 'Care is ongoing. Final checkout waits for veterinarian discharge approval.' : admission.status === 'Ready for discharge' ? admission.billingStatus === 'Paid' ? 'Payment saved. Reception can now confirm release to the owner.' : 'Discharge approved. Reception must finalize the bill and record payment before release.' : 'This stay is closed. Its care history and discharge instructions are retained.'}</p>
         <p>Payment: {admission.billingStatus || 'Unbilled'}</p>
-        {admission.status!=='Admitted' && <button className="btn" onClick={()=>setPrint(true)}>View / print discharge summary</button>}
-        {admission.status === 'Ready for discharge' && me.role === 'assistant' && <div className="admission-actions">{admission.billingStatus !== 'Paid' && go && <button className="btn" onClick={()=>go('home',{apptId:admission.apptId,action:'checkout'})}>Open this visit’s checkout</button>}<button className="btn gold" disabled={admission.billingStatus !== 'Paid'} onClick={()=>setMode('release')}>Confirm release to owner</button></div>}
+        {admission.status!=='Admitted' && <div className="admission-actions">
+          {admission.status === 'Ready for discharge' && me.role === 'assistant' && <>
+            {admission.billingStatus !== 'Paid' && go && <button className="btn" onClick={()=>go('home',{apptId:admission.apptId,action:'checkout'})}>Open this visit’s checkout</button>}
+            <button className="btn gold" disabled={admission.billingStatus !== 'Paid'} onClick={()=>setMode('release')}>Confirm release to owner</button></>}
+          <button className="btn" onClick={()=>setPrint(true)}>View / print discharge summary</button>
+        </div>}
       </section>
       {!owner && <section className="admission-plan" aria-label="Medicine orders"><h3>Veterinarian medicine orders</h3>
         <p>Orders describe what should be given. The care timeline records what actually happened. Take-home prescriptions and clinic supplies are separate.</p>
