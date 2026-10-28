@@ -226,3 +226,9 @@
 .shell:is(.th-assistant,.th-vet,.th-admin) .household-edit-note{max-width:200px;color:var(--mu);font-size:calc(12px*var(--fs,1))}
 .shell:is(.th-assistant,.th-vet,.th-admin) .household-pet-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:560px){.shell:is(.th-assistant,.th-vet,.th-admin) .record-edit-pair{grid-template-columns:minmax(0,1fr)}}
+
+/* Approvals: the two cards sit side by side at equal height; long lists scroll inside the card. */
+.shell:is(.th-assistant,.th-vet,.th-admin) .desk-grid .sf-approval-pair{column-span:all;-webkit-column-span:all;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch;margin:0 0 18px}
+.shell:is(.th-assistant,.th-vet,.th-admin) .sf-approval-pair>.sf-approvals{display:flex;flex-direction:column;margin:0;min-width:0}
+.shell:is(.th-assistant,.th-vet,.th-admin) .sf-approval-pair .sf-approval-scroll{flex:1 1 auto;min-height:0;max-height:480px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;align-content:start}
+@media(max-width:900px){.shell:is(.th-assistant,.th-vet,.th-admin) .desk-grid .sf-approval-pair{grid-template-columns:minmax(0,1fr)}}

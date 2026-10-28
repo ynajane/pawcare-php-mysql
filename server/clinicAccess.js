@@ -171,6 +171,7 @@ export function validateStatusChange(row, body, user) {
     if (error) return error;
   }
   if (['Cancelled','Rejected'].includes(body.status) && (typeof body.cancelReason !== 'string' || !body.cancelReason.trim() || body.cancelReason.length > 500)) return 'Enter a cancellation or rejection reason of no more than 500 characters.';
+  if (['Cancelled','Rejected'].includes(body.status) && (body.cancelReason.match(/\p{L}/gu) || []).length < 5) return 'Describe the cancellation or rejection reason in words.';
   if (body.cancelReason !== undefined && !['Cancelled','Rejected'].includes(body.status)) return 'Reasons belong to cancelled or rejected visits.';
   if (body.status === 'No-show') {
     const now = clinicClock();
