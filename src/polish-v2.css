@@ -274,3 +274,29 @@ html { font-size: calc(16px * var(--fs, 1)); }
   .shell .stat b, .shell .stats b { overflow-wrap: normal !important; word-break: keep-all; white-space: nowrap; font-size: clamp(calc(18px * var(--fs, 1)), 2vw, calc(28px * var(--fs, 1))) !important; }
   .shell .stat { min-width: 0; }
 }
+
+/* ---------- Status chips vs. action buttons ----------
+   Chips are flat, square-cornered, dotted labels you cannot click. Buttons stay solid pills.
+   Specificity is deliberately high so these win over the per-role stylesheets. */
+@media screen {
+  .shell.shell[class] :is(.badge,.chip,.ow-chip,.staff-status-chip,.sf-pill,.op-chip,.admission-status):not(button):not(a):not([role=button]) {
+    display: inline-flex; align-items: center; gap: 6px; vertical-align: middle;
+    padding: 3px 10px; margin-right: 0; border-radius: 6px; border: 1px solid rgba(0,0,0,.08);
+    font-size: calc(12px*var(--fs,1)); font-weight: 600; letter-spacing: .01em; line-height: 1.4;
+    text-transform: none; box-shadow: none; cursor: default; user-select: none; white-space: nowrap;
+  }
+  .shell.shell[class] :is(.badge,.chip,.ow-chip,.staff-status-chip,.sf-pill,.op-chip,.admission-status):not(button):not(a):not([role=button])::before {
+    content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+
+  /* Buttons: always one inline row, vertically centred, never touching a chip */
+  .shell table td:has(> .btn), .shell table td:has(> .badge ~ .btn) { white-space: nowrap; }
+  .shell table td > .btn { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-height: 32px; margin: 2px 6px 2px 0; }
+  .shell table td > .btn:last-child { margin-right: 0; }
+  .shell table td > :is(.badge,.chip,.ow-chip,.staff-status-chip,.sf-pill,.op-chip) + .btn { margin-left: 8px; }
+  .shell table td { vertical-align: middle; }
+
+  /* Card rows with a chip and buttons: one line, right aligned, wraps only when it must */
+  .shell :is(.sf-approval-actions, .sf-row-act, .admission-actions) { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+  .shell :is(.sf-approval-actions, .sf-row-act) .btn { margin: 0; }
+}
