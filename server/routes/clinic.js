@@ -1494,6 +1494,13 @@ clinicRouter.post("/appointments/:id/billing", async (req, res) => {
       );
       await client.query("INSERT INTO audit_logs (user_name, user_role, action) VALUES ($1,$2,$3)", [req.user.name, req.user.role, `Processed payment ₱${total} (${paymentMethod}) for visit ${apptId}`]);
       await finishCheckoutTask(client, apptId, req.user.id);
+      // Vet-approved stays are closed by final payment, so the pet is recorded as discharged.
+      const closed = (await client.query("UPDATE admissions SET status='Discharged',discharged_at=clock_timestamp(),revision=revision+1 WHERE appt_id=$1 AND status='Ready for discharge' RETURNING id", [apptId])).rows[0];
+      if (closed) {
+        await client.query(`INSERT INTO admission_updates (id,admission_id,kind,clinical_note,owner_update,actor_id,actor_name,actor_role,request_payload)
+          VALUES ($1,$2,'Release','Final payment received; pet discharged.','Your pet has been discharged after final payment.',$3,$4,$5,'{}')`, [crypto.randomUUID(), closed.id, req.user.id, req.user.name || '', req.user.role === 'vet' ? 'vet' : 'assistant']);
+        await client.query("INSERT INTO audit_logs (user_name, user_role, action) VALUES ($1,$2,$3)", [req.user.name, req.user.role, `Discharged admission ${closed.id} after final payment`]);
+      }
       await refreshDigitalVetCard(client, current.pet_id);
       return updated;
     });

@@ -15,7 +15,7 @@ import { VaccinePicker, VaccineEstimate, useBookingCatalog } from '../components
 import { vaccineChoiceError, vaccineIdFromReason, vaccineReason, vaccinePriceLabel } from '../vaccineBooking.js';
 import { PaginatedList, PaginatedTable } from "../components/Pagination.jsx";
 import {useFollowingClinicDay} from "../useClinicDay.js";
-import { checkInDateError } from "../intakeVisit.js";
+import { checkInDateError, approvalExpiredError } from "../intakeVisit.js";
 import { useSubmissionReview } from "../components/SubmissionReview.jsx";
 import { confirmedBooking } from "../receptionSaves.js";
 import { completedVisitRecord } from "../vetQueue.js";
@@ -24,7 +24,7 @@ import { canBookAppointments } from "../appointmentPermissions.js";
 import { prefill } from "./owner/ui.jsx";
 import { openFollowUps } from "../clinicalWorkflow.js";
 import { useAvailability } from "../useAvailability.js";
-import { lastDay, today as bookingToday, SERVICES, bookableServices, serviceOf, splitReason, openSlots, reservationCovers, addMin, durOf, fmt12 } from "../booking.js";
+import { lastDay, today as bookingToday, nowHM, SERVICES, bookableServices, serviceOf, splitReason, openSlots, reservationCovers, addMin, durOf, fmt12 } from "../booking.js";
 import { useRef, useState } from "react";
 import {
   Calendar,
@@ -221,6 +221,8 @@ export default function ClinicCalendar({ db, setDb, me, go, say }) {
     }}>View saved notes</button>;
     return null;
   };
+
+  const approvalPassed = visit => approvalExpiredError(visit, {date: bookingToday(), time: nowHM()});
 
   const manageAppointment = visit => me.role === "assistant" && ["Pending Approval", "Scheduled"].includes(visit.status)
     ? <><button className="btn sm ghost" onClick={() => setBookingSlot({...visit, editing:true})}>Reschedule</button>
@@ -622,7 +624,8 @@ export default function ClinicCalendar({ db, setDb, me, go, say }) {
                                   {me.role === "assistant" && apptMatch.status === "Pending Approval" && (
                                     <button
                                       className="btn sm"
-                                      disabled={!!confirming[apptMatch.id]}
+                                      disabled={!!confirming[apptMatch.id] || !!approvalPassed(apptMatch.appt)}
+                                      title={approvalPassed(apptMatch.appt) || undefined}
                                       onClick={() => handleAction(apptMatch.appt, "Scheduled")}
                                       style={{ fontSize: "calc(12px * var(--fs, 1))", padding: "4px 8px" }}
                                     >
@@ -764,7 +767,7 @@ export default function ClinicCalendar({ db, setDb, me, go, say }) {
                     <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                       <Badge v={e.status} />
                       {me.role === "assistant" && e.status === "Pending Approval" && (
-                        <button className="btn sm" disabled={!!confirming[e.id]} onClick={() => handleAction(e.appt, "Scheduled")}>{confirming[e.id] ? "Approving…" : "Approve"}</button>
+                        <button className="btn sm" disabled={!!confirming[e.id] || !!approvalPassed(e.appt)} title={approvalPassed(e.appt) || undefined} onClick={() => handleAction(e.appt, "Scheduled")}>{confirming[e.id] ? "Approving…" : "Approve"}</button>
                       )}
                       {me.role === "assistant" && e.status === "Scheduled" && (
                         <button className="btn sm gold" disabled={!!checkInDateError(e.appt, bookingToday())} title={checkInDateError(e.appt, bookingToday()) || "Record intake vitals"} onClick={() => setCheckInAppt(e.appt)}>Check in</button>
@@ -971,7 +974,7 @@ export default function ClinicCalendar({ db, setDb, me, go, say }) {
             ["Billing", paid ? `Paid${a.amount ? ` · ₱${Number(a.amount).toLocaleString()}` : ""}` : a.status === "Completed" ? (a.billingStatus || "Awaiting checkout") : ""],
             ["Owner note", a.notes], [a.status === "Rejected" ? "Rejection reason" : "Cancellation reason", a.cancelReason]]}>
           <button type="button" className="btn ghost sm" onClick={() => { close(); setCardAppt(a); setCardPetId(a.petId); }}>Open pet card</button>
-          {me.role === "assistant" && a.status === "Pending Approval" && <button type="button" className="btn sm" disabled={!!confirming[a.id]} onClick={() => handleAction(a, "Scheduled")}>{confirming[a.id] ? "Approving…" : "Approve"}</button>}
+          {me.role === "assistant" && a.status === "Pending Approval" && <button type="button" className="btn sm" disabled={!!confirming[a.id] || !!approvalPassed(a)} title={approvalPassed(a) || undefined} onClick={() => handleAction(a, "Scheduled")}>{confirming[a.id] ? "Approving…" : "Approve"}</button>}
           {me.role === "assistant" && a.status === "Scheduled" && <button type="button" className="btn sm gold" disabled={!!checkInDateError(a, bookingToday())} onClick={() => { close(); setCheckInAppt(a); }}>Check in</button>}
           <span className="vcard-more" onClick={close}>{manageAppointment(a)}{doctorActions(a, visit.petObj)}</span>
         </VisitCard>;

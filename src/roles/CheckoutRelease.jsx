@@ -12,7 +12,7 @@ export default function CheckoutRelease({id,apptId,me,onReleased}) {
   return <section className="admission-plan no-print" aria-label="Pet release after payment">
     <h3>Pet discharge</h3>
     {read.error && <p role="alert">{matchesVisit && admission.status === 'Discharged' ? 'Release is saved, but the latest admission updates could not refresh.' : 'Payment is saved, but the pet’s release status could not refresh.'} {read.error} <button className="btn sm" onClick={() => read.load()}>Retry release status</button></p>}
-    {matchesVisit && admission.status === 'Discharged' ? <p role="status"><b>Discharged</b> · Release to the owner has been recorded.</p>
+    {matchesVisit && admission.status === 'Discharged' ? <p role="status"><b>Discharged</b> · Final payment received and the discharge has been recorded.</p>
       : read.error ? null
       : !admission ? <p role="status">Checking the pet’s release status…</p>
       : !matchesVisit ? <p role="alert">The admission does not match this visit. Open Admitted Pets to check the stay.</p>

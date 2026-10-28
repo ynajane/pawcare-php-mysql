@@ -31,7 +31,7 @@
 /* ---------- 2. Needs-attention tiles: each one jumps to its section ---------- */
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,168px),1fr));gap:12px;margin-bottom:18px}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile{
-  display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ic n" "lb lb";align-items:center;column-gap:12px;row-gap:6px;
+  display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ic n" "lb lb";grid-template-rows:auto 1fr;align-items:center;align-content:start;column-gap:12px;row-gap:6px;
   padding:14px 16px;text-align:left;cursor:pointer;color:var(--ink);font:inherit;
   background:#fff;border:1px solid var(--ow-line);border-radius:20px;box-shadow:var(--ow-shadow);
   transition:transform .15s,box-shadow .15s,border-color .15s;
@@ -40,7 +40,7 @@
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile:focus-visible{outline:3px solid #658be3;outline-offset:3px}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile-ic{grid-area:ic;display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:var(--ow-soft);color:var(--blue)}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile b{grid-area:n;font-size:calc(26px*var(--fs,1));line-height:1.1;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile>span:last-child{grid-area:lb;font-size:calc(13px*var(--fs,1));font-weight:600;color:#4b5b82}
+.shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile>span:last-child{grid-area:lb;align-self:start;line-height:1.35;font-size:calc(13px*var(--fs,1));font-weight:600;color:#4b5b82}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile.wa{border-color:#f1dd8a;background:linear-gradient(180deg,#fffbea,#fff)}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile.wa .desk-tile-ic{background:#ffe9a6;color:#7a5200}
 .shell:is(.th-assistant,.th-vet,.th-admin) .desk-tile.info .desk-tile-ic{background:#dbe7ff;color:#1d4ed8}

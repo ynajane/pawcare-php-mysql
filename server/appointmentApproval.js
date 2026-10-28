@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { query } from './db.js';
 import { approveRegistration } from './approveRegistration.js';
 import { lockRegistrationOwner, registrationError } from './petRegistration.js';
-import { assertAvailable, minutes, inferBookingService } from './scheduling.js';
-import { sameIntakeVisit } from '../src/intakeVisit.js';
+import { assertAvailable, minutes, inferBookingService, clinicClock } from './scheduling.js';
+import { sameIntakeVisit, approvalExpiredError } from '../src/intakeVisit.js';
 import { validateStatusChange } from './clinicAccess.js';
 import { requestedVaccineReason } from './vaccineBooking.js';
 import { vaccineIdFromReason } from '../src/vaccineBooking.js';
@@ -30,6 +30,8 @@ export async function approveAppointment(client, current, body, user) {
     throw registrationError('This visit has changed. Refresh clinic records and reopen its current action.',409);
   const invalid = validateStatusChange(baseline,body,user);
   if (invalid) throw registrationError(invalid,409);
+  const passed = !replay && approvalExpiredError(normalized,clinicClock());
+  if (passed) throw registrationError(passed,409);
   if (replay) {
     let registration;
     if (body.expectedRegistration) {

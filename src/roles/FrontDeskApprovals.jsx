@@ -4,11 +4,11 @@ import {useState} from 'react';
 import {CalendarCheck,CalendarDays,PawPrint} from 'lucide-react';
 import {pendingVisitApprovals,registrationsWithoutVisit} from '../assistantWorkflow.js';
 import {chronologicalAppointments} from '../appointmentOrder.js';
-import {fmt12,today} from '../booking.js';
+import {fmt12,today,nowHM} from '../booking.js';
 import ClinicDialog from '../components/ClinicDialog.jsx';
 import {ExternalHistorySummary} from '../components/ExternalHistory.jsx';
 import {approvalVisit} from '../appointmentStatus.js';
-import {sameIntakeVisit} from '../intakeVisit.js';
+import {sameIntakeVisit,approvalExpiredError} from '../intakeVisit.js';
 import {useFormValidation} from '../components/useFormValidation.jsx';
 
 export function RequestReview({snapshot,db,onClose,onConfirm,onReject,confirming,error}) {
@@ -16,7 +16,7 @@ export function RequestReview({snapshot,db,onClose,onConfirm,onReject,confirming
   const {visit,patient,registration,owner,vet}=snapshot;
   const current=db.appts.find(a=>a.id===visit.id), liveRegistration=registration && db.petRequests.find(r=>r.id===registration.id);
   const stale=!current || !sameIntakeVisit(current,visit) || registration && (!liveRegistration || liveRegistration.revision!==registration.revision || liveRegistration.status!==registration.status);
-  const expired=visit.date<today(), declined=registration?.status==='Declined';
+  const expired=!!approvalExpiredError(visit,{date:today(),time:nowHM()}), declined=registration?.status==='Declined';
   const validation=useFormValidation({checked:checked?'':'Confirm you reviewed the patient details and requested visit.'});
   return <ClinicDialog label="View appointment request details" onClose={confirming?()=>{}:onClose}><section className="card admission-form"> <h2>Appointment request details</h2>
     <p><b>{patient?.name || 'Patient'}</b> · {visit.date} at {visit.time?fmt12(visit.time):'Time not recorded'} · {vet?.name || 'Veterinarian not recorded'}</p>
@@ -25,7 +25,7 @@ export function RequestReview({snapshot,db,onClose,onConfirm,onReject,confirming
     <dl className="op-dl">{[['Species',patient?.speciesOther || patient?.species],['Breed',patient?.breed],['Sex',patient?.sex],['Birth date',patient?.birth],['Reported weight',`${patient?.weight ?? 'Unknown'} kg · ${registration?'owner registration report':'see measured history in patient record'}`],['Spayed / neutered',patient?.neutered],['Color',patient?.color],['Registration notes',patient?.notes]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v || 'Not recorded'}</dd></div>)}</dl>
     <ExternalHistorySummary patient={patient} />
     <p>{registration?'One approval verifies this pet’s registration and confirms the available appointment slot. Each new pet is reviewed separately.':'This pet is already verified. Approval confirms this visit and its available slot.'} Administered vaccinations are added to the card by the attending veterinarian.</p>
-    {expired && <p className="err" role="alert">This requested date has passed. Reschedule it in Appointments and calendar or reject it with instructions for the owner.</p>}
+    {expired && <p className="err" role="alert">This requested date or time has passed. Reschedule it in Appointments and calendar or reject it with instructions for the owner.</p>}
     {declined && <p className="err" role="alert">The owner must correct and resubmit the registration before this visit can be approved.</p>}
     {stale && <p className="err" role="alert">The request changed. Close and reopen the latest details before approving.</p>}
     {error && <p className="err" role="alert">{error}</p>}

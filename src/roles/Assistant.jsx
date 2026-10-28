@@ -7,16 +7,17 @@ import AdmissionsPage, { AdmissionsSummary } from './AdmissionsPage.jsx';
 import { PaginatedList } from "../components/Pagination.jsx";
 import FrontDeskApprovals from "./FrontDeskApprovals.jsx";
 import ExistingPatientCheckInModal from "./ExistingPatientCheckInModal.jsx";
-import { assistantQueue, pendingVisitApprovals, registrationsWithoutVisit, dailyCollections, pendingCheckout, money } from "../assistantWorkflow.js";
+import { assistantQueue, pendingVisitApprovals,dailyCollections, pendingCheckout, money } from "../assistantWorkflow.js";
 import CareFollowUps from "./CareFollowUps.jsx";
 import CheckoutInbox from "./CheckoutInbox.jsx";
 import { currentVaccinationDue, vaccinationAppointment, vaccinationBooking, vaccinationStatus } from "../ownerVaccination.js";
-import { today, plus } from "../booking.js";
+import { today, plus, nowHM } from "../booking.js";
+import { approvalExpiredError } from "../intakeVisit.js";
 import { setPrefill, SearchField } from "./owner/ui.jsx";
 import "./assistant-desk.css";
 import { useEffect, useRef, useState } from "react";
 import {
-  CalendarDays, AlertTriangle, PawPrint, ConciergeBell, Thermometer, Scale, UserCheck, Receipt, ArrowRight, X, Phone, Syringe,
+  CalendarDays, AlertTriangle,ConciergeBell, Thermometer, Scale, UserCheck, Receipt, ArrowRight, X, Phone, Syringe,
   ClipboardCheck, Hourglass, Stethoscope, BellRing,
 } from "lucide-react";
 import { moveAppt, Badge, ICON, I } from "../lib.jsx";
@@ -25,7 +26,6 @@ import BillingModal from "./BillingModal.jsx";
 import ClinicCalendar from "./ClinicCalendar.jsx";
 import CheckInModal from "./CheckInModal.jsx";
 import PetApprovalModal from "./PetApprovalModal.jsx";
-import PetRequestsPage from "./PetRequestsPage.jsx";
 import PetCardModal from "./PetCardModal.jsx";
 import ClientsAndPatientsPage from "./ClientsAndPatientsPage.jsx";
 import DailySalesPage from "./DailySalesPage.jsx";
@@ -53,7 +53,6 @@ function Dash({ db, setDb, me, go, say, navigation, onNavigationHandled }) {
   const [logCallTarget, setLogCallTarget] = useState(null);
   const [search, setSearch] = useState("");
 
-  const pendingReqs = registrationsWithoutVisit(db);
   const queue = assistantQueue(db.appts, TODAY);
   const q = queue[queueStage];
   const waiting = queue.waiting, inConsult = queue.consultation;
@@ -137,7 +136,6 @@ function Dash({ db, setDb, me, go, say, navigation, onNavigationHandled }) {
           <button className="btn gold" onClick={() => setShowWalkIn(true)}><ConciergeBell size={16} aria-hidden="true" />Register new walk-in</button>
           <button className="btn" onClick={() => setShowExistingWalkIn(true)} title="Quick check-in for patients who are already registered"><UserCheck size={16} aria-hidden="true" />Existing patient check-in</button>
           <button className="btn ghost" onClick={() => go("cal")}><CalendarDays size={16} aria-hidden="true" />Calendar</button>
-          {pendingReqs.length > 0 && <button className="btn ghost" onClick={() => go("pet-requests")}><PawPrint size={16} aria-hidden="true" />Pets without a visit ({pendingReqs.length})</button>}
         </div>
       </header>
 
@@ -215,7 +213,7 @@ function Dash({ db, setDb, me, go, say, navigation, onNavigationHandled }) {
                         <button className="btn sm ghost" onClick={() => go("cal")} title="Open the calendar to book a new date">Rebook</button>
                       </>}
                       {a.date >= TODAY && a.status === "Pending Approval" && (
-                        <button className="btn sm" disabled={!!confirming[a.id]} onClick={() => confirmVisit(a)}>{confirming[a.id] ? "Approving…" : "Approve"}</button>
+                        <button className="btn sm" disabled={!!confirming[a.id] || !!approvalExpiredError(a, {date: today(), time: nowHM()})} title={approvalExpiredError(a, {date: today(), time: nowHM()}) || undefined} onClick={() => confirmVisit(a)}>{confirming[a.id] ? "Approving…" : "Approve"}</button>
                       )}
                       {a.date >= TODAY && a.status === "Scheduled" && (
                         <button className="btn sm gold" title="Arrival check-in and vitals intake" onClick={() => setCheckInAppt(a)}>Check in</button>
@@ -392,7 +390,6 @@ export const assistant = {
     { k: 'admissions', l: 'Admitted Pets', i: 'hospital', Page: AdmissionsPage, sub: 'Follow veterinarian care plans, record measured observations and share owner updates.' },
     { k: "prices", l: "Services & Prices", i: "file", Page: props => <Prices {...props} staff />, sub: "Browse clinic services, products, offers and current prices." },
     { k: "sales", l: "Daily Sales & Billing", i: "receipt", Page: DailySalesPage, sub: "Daily collections register, paid invoices, and sales breakdown." },
-    { k: "pet-requests", l: "Online Pet Requests", i: "paw", Page: PetRequestsPage, sub: "Review and approve online pet registrations with automated vaccination cards." },
     { k: "cal", l: "Appointments & Calendar", i: "calendar", Page: ClinicCalendar, sub: "Unified calendar schedules, slot booking, and appointments management." },
     { k: "clients-patients", l: "Clients & Patients Masterlist", i: "users", Page: ClientsAndPatientsPage, sub: "Unified masterlist of pet owners, animal patient profiles, and official vaccination cards." },
     { k: "records", l: "Consultations & EMR", i: "file", Page: ConsultationsPage, sub: "Certified veterinary consultation notes, EMR, and prescription handoff." },

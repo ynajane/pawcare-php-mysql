@@ -12,6 +12,15 @@ export function checkInDateError(visit, clinicDate) {
   return null;
 }
 
+// A pending request whose slot has already started can no longer be approved; reschedule or reject it.
+export function approvalExpiredError(visit, clock) {
+  const {date,time} = clock || {};
+  if (!visit?.date || !date) return null;
+  if (visit.date < date || (visit.date === date && /^\d{2}:\d{2}$/.test(visit.time || '') && visit.time < time))
+    return `This requested time (${visit.date} ${visit.time || ''}) has already passed. Reschedule it or reject the request.`.replace('  ',' ');
+  return null;
+}
+
 // Both the browser and the locked database row use this intake-edit baseline.
 export function intakeVisitSnapshot(visit) {
   if (!visit) return null;
