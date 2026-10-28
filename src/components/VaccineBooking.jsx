@@ -28,7 +28,8 @@ export function VaccinePicker({value,onChange,species,petSelected=true,error,id=
       <option value="">{petSelected?'Choose a vaccine request':'Choose a pet first'}</option>
       {VACCINE_CHOICES.filter(c=>!vaccineChoiceError(c.id,species)).map(c=><option key={c.id} value={c.id}>{c.name}{vaccinePrice(c.id,catalog)!==null?` — ${phpPrice(vaccinePrice(c.id,catalog))}`:''}</option>)}
     </LiveControl>
-    <p id={`${id}-hint`} className={error?'err':'vaccine-help'}>{error || 'This is a request. The veterinarian checks your pet, prior doses and suitability before administering a vaccine.'}</p>
+    {/* The select already shows its own error message, so the hint never repeats it. */}
+    <p id={`${id}-hint`} className="vaccine-help">This is a request. The veterinarian checks your pet, prior doses and suitability before administering a vaccine.</p>
     {value && <div className="vaccine-estimate"><Info size={16} aria-hidden="true" /><div><strong>{vaccinePriceLabel(value,catalog)}</strong><small>Additional care may cost extra. Booking does not issue a bill or record a dose.</small></div></div>}
     {read?.error && <p className="vaccine-help" role="status">Prices could not load. Confirm pricing with the clinic. <button type="button" className="btn sm ghost" onClick={()=>read.load()}>Retry prices</button></p>}
   </section>;

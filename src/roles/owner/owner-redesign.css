@@ -271,3 +271,12 @@
 .shell .cbl li.on,.shell .cbl li:hover{background:#eef3ff;color:#1e3a8a}
 .shell .cbl li.no{color:#8a97b8;cursor:default;font-style:italic}
 .shell .combo input[aria-invalid=true]{border-color:#f3a8a0;background-color:#fff6f5}
+
+/* Booking form: the reason / symptoms block matches the other fields and has room around it. */
+.shell.th-owner .ow-book-patient{margin-bottom:18px}
+.shell.th-owner .booking-reason-fields{display:grid;gap:8px;margin:0 0 18px}
+.shell.th-owner .booking-reason-fields>label{font-size:calc(13px*var(--fs,1));font-weight:600;color:#33466f;margin:0}
+.shell.th-owner .booking-reason-fields :is(select,textarea){width:100%;box-sizing:border-box;min-height:46px;padding:10px 14px;border-radius:12px;font:inherit}
+.shell.th-owner .booking-reason-fields textarea{min-height:92px}
+.shell.th-owner .booking-reason-fields>label+select+.field-feedback+label{margin-top:6px}
+.shell.th-owner .ow-book-form .vaccine-picker{margin:0 0 18px}
